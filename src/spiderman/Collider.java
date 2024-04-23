@@ -202,16 +202,17 @@ public class Collider {
     }
 
     private int indexOfEdge(int n) {
-        int index = 0; 
         for(int i = 0; i < aList.length; i++) {
             for(int j = 0; j<adj[i].size(); j++) {
                 if(adj[i].get(j) == n) {
-                    index = i;
+                    return i;
                 }
             }
         }
-        return index; 
+        return -1; 
     }
+
+
     
  
     public void addNewEdges() {
@@ -224,7 +225,7 @@ public class Collider {
                 boolean checker = getFirstNum(edge); 
                 if(checker || !adj[i].contains(first)) {
                     adj[getFirstIndex(edge)].add(first);
-                    System.out.println(adj[getFirstIndex(edge)]);
+                    //System.out.println(adj[getFirstIndex(edge)]);
                 }
 
 
@@ -234,6 +235,23 @@ public class Collider {
                     count++;
                 }
             }
+        }
+
+    }
+
+    public void removeDuplicates() {
+        for(int i = 0; i < aList.length; i++) {
+            for(int j = 0; j < adj[i].size(); j++) {
+                int first = adj[i].get(j);
+                //System.out.print(adj[i].get(j) + " ");
+                for(int k = j+1; k < adj[i].size(); k++) {
+                    if(first == adj[i].get(k)) {
+                        //System.out.print(adj[i].get(k) + " "); 
+                        adj[i].remove(k); 
+                    }
+                }
+            }
+            //System.out.println();
         }
     }
 
@@ -260,6 +278,7 @@ public class Collider {
         obj2.wrapAroundDimensions();
         obj2.addCurrentValues();
         obj2.addNewEdges();
+        obj2.removeDuplicates();
         StdOut.setFile(args[2]);
         obj2.printCollider(); 
     }
