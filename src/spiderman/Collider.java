@@ -38,72 +38,212 @@ import java.util.ArrayList;
 public class Collider {
 
     private int numOfDimensions; 
-    private ArrayList<DimensionNode> adj; 
-    private DimensionNode[] clusters; // private array of nodes of dimensions
     private int size; 
-    private double capacity; // private variable of total threshold
+    private double capacity; 
+    private int dimensionNum; 
+    private int canonEvents; 
+    private int weight; 
+    @SuppressWarnings("unchecked")
+    private ArrayList<Integer>[] adj;  
 
-    public Collider() { //constructor
-        this.numOfDimensions = 0; 
-        this.adj = null; 
-        this.clusters = null;
-        this.size = 0; 
-        this.capacity = 0; 
+    private int numOfPeople; 
+    private String name; 
+    private int signature; 
+    private DimensionNode[] aList;
+
+    public Collider() {
+        numOfDimensions = 0;
+        size = 0;
+        capacity = 0;
+        dimensionNum = 0; 
+        canonEvents = 0; 
+        weight = 0;
+        numOfPeople = 0; 
+        name = null;
+        signature = 0; 
+        aList = null; 
     }
 
-    public void adjacencyList(String inputFile) {
-
-        StdIn.setFile(inputFile);
-        numOfDimensions = StdIn.readInt(); 
-        size = StdIn.readInt(); 
-        capacity = StdIn.readDouble(); 
-        clusters = new DimensionNode[size]; 
-        adj = new ArrayList<>(); 
-        int index = 0; 
-        while(index < numOfDimensions) {
-            DimensionNode ptr = clusters[index]; 
-            adj.add(ptr); 
-            DimensionNode edge = ptr.getNextDimensionNode(); 
-            while(edge!=null) {
-                adj.get(index).setNextDimensionNode(edge);
-                System.out.print(adj.get(index).getDimensionNum());
-                edge = edge.getNextDimensionNode(); 
+    private int getTotalNodes(DimensionNode [] aList) { // method to count total Nodes 
+        int count = 0; // counter 
+        for(int i = 0; i < aList.length; i++) { // for loop to go through array
+            DimensionNode ptr = aList[i]; // go through linked list at specific index 
+            while(ptr!=null) { // inner while loop
+                count++; // keep counting 
+                ptr = ptr.getNextDimensionNode(); // traverse 
             }
-            index++; 
         }
-        
+        return count; // return val
     }
 
-    public void addPeople() {
-        int numOfPeople = StdIn.readInt(); 
-        int dimension = StdIn.readInt();
-        String name = StdIn.readString(); 
-        int signature = StdIn.readInt(); 
-        int index = 0; 
+    private DimensionNode[] rehash(DimensionNode[] aList) { // rehash method w a parameter of a array of dimensions
+        DimensionNode [] temp = new DimensionNode[aList.length * 2]; // create a temp array of a new length doubled of before
+        for(int i = 0; i < aList.length; i++) { // for loop 
+            DimensionNode ptr = aList[i]; // ptr so it stays on specific index and iterates after every linked list is gone through 
+            while(ptr!=null) { // inner while loop to iterate through linked list inside each index 
+                DimensionNode a = ptr; // temp var 
+                ptr = ptr.getNextDimensionNode(); // keep traversing to next node
+                int index = a.getDimensionNum() % temp.length; // hash function 
+                a.setNextDimensionNode(temp[index]); // sets next dimension to the current first node at the specific index 
+                temp[index] = a; // first node is now replaced 
+            } 
+        }
 
-        while(index < numOfPeople) {
-            DimensionNode ptr = clusters[index]; 
-            while(ptr!=null) {
-                if(ptr.getDimensionNum()==dimension) {
-                    DimensionNode node = new DimensionNode(dimension, name, signature); 
-                    adj.get(index).setNextDimensionNode(node);
+        return temp; // returns new array w double the size 
+    }
+
+    public void createTable(String inputFile) { // create the actual table with an input file parameter
+        StdIn.setFile(inputFile); // sets the file as the input file, actual file is shown below in another method
+        numOfDimensions = StdIn.readInt(); // num of Dimensions 
+        //System.out.println(numOfDimensions);
+        size = StdIn.readInt(); // length of the Clusters array
+        //System.out.println(tableSize);
+        capacity = StdIn.readDouble(); // capacity of each index
+        //System.out.println(capacity);
+        aList = new DimensionNode[size]; // clusters array initialized 
+        int count = 0; // counter for while loop
+        while(count < numOfDimensions) { // while loop
+            int dimensionNum = StdIn.readInt(); // specific dimension number 
+            int canonEvents = StdIn.readInt(); // number of canon events 
+            int weight = StdIn.readInt(); // actual weight 
+            DimensionNode node = new DimensionNode(dimensionNum, canonEvents, weight, null); // create a new dimension with specific parameters 
+            int index = node.getDimensionNum() % size; // hash function 
+            node.setNextDimensionNode(aList[index]); // makes the first current node placed right after it 
+            aList[index] = node; // first node replaced by new node now 
+            if(getTotalNodes(aList) / size >= capacity) { // if statement to check if it is pass capacity 
+                aList = rehash(aList); // new array is sent using rehash function 
+                size = size * 2; // table size is now doubled if the if statment is ran 
+            } 
+            count++; // add counter for while loop 
+        } 
+    }
+
+    public void wrapAroundDimensions() { // wrapping method 
+        int count = 0; // counter 
+        while(count < aList.length) { // while loop 
+            if(count == 0) { // one case if the i is 0 
+                DimensionNode node1 = new DimensionNode(aList[aList.length-1]);  // node 1 is the one that is going to be the second to last node
+                DimensionNode node2 = new DimensionNode(aList[aList.length-2]);  // node 2 is the one that is going to be the last node
+                node2.setNextDimensionNode(null); // node 2 next is null 
+                node1.setNextDimensionNode(node2); // node 1 next is node 2 
+                DimensionNode temp = aList[0]; // get specific index for the specifc linked list 
+                while(temp.getNextDimensionNode()!=null) { // traverse to end of linked list 
+                    temp = temp.getNextDimensionNode();  // get to end 
                 }
-                ptr = ptr.getNextDimensionNode(); 
+                temp.setNextDimensionNode(node1); // set the old last node to the second to last node now 
             }
-            index++; 
+
+            else if(count == 1) { // second case if i is 1 
+                DimensionNode node1 = new DimensionNode(aList[0]); // node 1 is the one that is going to be the second to last node
+                DimensionNode node2 = new DimensionNode(aList[aList.length-1]); // node 2 is the one that is going to be the last node
+                node2.setNextDimensionNode(null); // node 2 next is null 
+                node1.setNextDimensionNode(node2); // node 1 next is node 2 
+                DimensionNode temp = aList[1]; // get specific index for the specifc linked list 
+                while(temp.getNextDimensionNode()!=null) { // traverse to end of linked list 
+                    temp = temp.getNextDimensionNode(); // get to end 
+                }
+                temp.setNextDimensionNode(node1); // set the old last node to the second to last node now 
+            }
+
+            else { // if both cases are not true 
+                DimensionNode node1 = new DimensionNode(aList[count-1]); //node 1 is the one that is going to be the second to last node
+                DimensionNode node2 = new DimensionNode(aList[count-2]); // node 2 is the one that is going to be the last node
+                node2.setNextDimensionNode(null); // node 2 next is null 
+                node1.setNextDimensionNode(node2); // node 1 next is node 2 
+                DimensionNode temp = aList[count]; // get specific index for the specifc linked list 
+                while(temp.getNextDimensionNode()!=null) { // traverse to end of linked list 
+                    temp = temp.getNextDimensionNode(); // get to end 
+                }
+                temp.setNextDimensionNode(node1); // set the old last node to the second to last node now 
+            }
+            count++; // counter for while loop 
+        }
+    }
+
+
+    @SuppressWarnings("unchecked")
+    public void addCurrentValues() {
+
+        adj = (ArrayList<Integer>[]) new ArrayList<?>[numOfDimensions]; 
+        
+        for(int j = 0; j<numOfDimensions; j++) {
+            adj[j] = new ArrayList<Integer>();
+        }
+
+        for(int i = 0; i < aList.length; i++) {
+            DimensionNode ptr = aList[i];
+            //System.out.println(ptr.getDimensionNum()); 
+            while(ptr!=null) {
+                adj[i].add(ptr.getDimensionNum());  
+                ptr = ptr.getNextDimensionNode();
+            }
+            //System.out.println();        
+        }
+    }
+
+
+    private boolean getFirstNum(int edge) {
+        for(int i = 0; i<aList.length; i++) {
+            if(adj[i].get(0) == edge) {
+                return true;
+            }
+        }
+        return false; 
+    }
+
+    private int getFirstIndex(int n) {
+        int index = 0; 
+        for(int i = 0; i<aList.length; i++) {
+            if(adj[i].get(0) == n) {
+                index = i;
+            }
+        }
+        return index; 
+    }
+
+    private int indexOfEdge(int n) {
+        int index = 0; 
+        for(int i = 0; i < aList.length; i++) {
+            for(int j = 0; j<adj[i].size(); j++) {
+                if(adj[i].get(j) == n) {
+                    index = i;
+                }
+            }
+        }
+        return index; 
+    }
+    
+ 
+    public void addNewEdges() {
+        int count = 0; 
+        for(int i = 0; i<aList.length; i++) {
+            int first = adj[i].get(0); 
+            //System.out.println(first);
+            for(int j = 1; j<adj[i].size(); j++) {
+                int edge = adj[i].get(j); 
+                boolean checker = getFirstNum(edge); 
+                if(checker || !adj[i].contains(first)) {
+                    adj[getFirstIndex(edge)].add(first);
+                    System.out.println(adj[getFirstIndex(edge)]);
+                }
+
+
+                else if(aList.length+count<numOfDimensions && adj[i].contains(first)) {
+                    adj[aList.length+count].add(edge); 
+                    adj[aList.length+count].add(first);
+                    count++;
+                }
+            }
         }
     }
 
 
     public void printCollider() { // to actually print the dimension  Numbers 
-        for(int i = 0; i < adj.size(); i++) { 
-            DimensionNode temp = adj.get(i); 
-            while(temp!=null) { 
-                StdOut.print(temp.getDimensionNum() + " "); 
-                temp=temp.getNextDimensionNode(); 
+        for(int i = 0; i < adj.length; i++) { // for loop for the array 
+            for(int j = 0; j<adj[i].size(); j++) {
+                StdOut.print(adj[i].get(j) + " ");
             }
-            
-                StdOut.println(); 
+            StdOut.println(); // new line 
         }
     }
 
@@ -115,13 +255,12 @@ public class Collider {
                 return;
         }
 
-        // WRITE YOUR CODE HERE
-        Clusters obj1 = new Clusters(); 
         Collider obj2 = new Collider(); 
-        obj1.createTable(args[0]);
-        obj2.adjacencyList(args[1]); 
-        obj2.addPeople();
+        obj2.createTable(args[0]);
+        obj2.wrapAroundDimensions();
+        obj2.addCurrentValues();
+        obj2.addNewEdges();
         StdOut.setFile(args[2]);
-        obj2.printCollider(); // calls method to print dimensions 
+        obj2.printCollider(); 
     }
 }
